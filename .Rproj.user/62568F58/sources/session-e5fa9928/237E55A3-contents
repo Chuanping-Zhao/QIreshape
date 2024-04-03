@@ -1,0 +1,27 @@
+#' Example Data Usage
+#'
+#' This documentation provides examples of how to load and use the sample data included in the package.
+#'
+#' @examples
+#' # Load CSV example data
+#' csv_example_path <- system.file("extdata", "demo_read.csv", package = "yourPackageName")
+#' csv_example_data <- read.csv(csv_example_path)
+#'
+#' # Load XLSX example data
+#' xlsx_example_path <- system.file("extdata", "demo_read.xlsx", package = "yourPackageName")
+#' xlsx_example_data <- readxl::read_excel(xlsx_example_path)
+#'
+#' # Load TXT example data
+#' txt_example_path <- system.file("extdata", "demo_read.txt", package = "yourPackageName")
+#' txt_example_data <- readr::read_delim(txt_example_path, delim = "\t")
+#'
+#' # Load RDS example data (qualitative)
+#' rds_qual_example_path <- system.file("extdata", "identical_demo.rds", package = "yourPackageName")
+#' rds_qual_example_data <- readRDS(rds_qual_example_path)
+#'
+#' # Load RDS example data (quantitative)
+#' rds_quant_example_path <- system.file("extdata", "intensity_demo.rds", package = "yourPackageName")
+#' rds_quant_example_data <- readRDS(rds_quant_example_path)
+#'
+#' @keywords internal
+example_data_usage <- function() {}

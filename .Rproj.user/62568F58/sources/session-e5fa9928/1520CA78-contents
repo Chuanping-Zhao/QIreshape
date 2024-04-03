@@ -1,0 +1,108 @@
+#' Merge Qualitative and Quantitative Metabolomics Data exported from Progenesis QI software
+#'
+#' This function is specifically designed to merge qualitative and quantitative metabolomics data
+#' exported from Progenesis QI software. It processes and merges datasets in CSV, XLSX, and TXT formats,
+#' prioritizing quantitative data when overlaps occur. The function filters data by score, handles
+#' duplicate entries, and augments the data with polarity information, making it ideal for Progenesis QI
+#' analysis workflows.
+#'
+#' @param identical_path The file path to the qualitative data exported from Progenesis QI.
+#'        This is a required parameter. Supported formats are CSV and XLSX, and TXT.
+#' @param intensity_path The file path to the quantitative data exported from Progenesis QI.
+#'        This is a required parameter. Supported formats are CSV, XLSX, and TXT.
+#' @param score_value The score threshold for filtering MS1 levels.
+#'        This is a required parameter. The default value is 0.
+#' @param polarity The polarity mode of the mass spectrometry data.
+#'        This is a required parameter. The default value is "pos".
+#'
+#' @return A data frame containing the merged qualitative and quantitative data, filtered by score, with
+#' duplicates removed, and augmented with polarity information.
+#' @export
+#'
+#' @importFrom dplyr left_join select filter arrange distinct mutate
+#' @importFrom readr read_csv
+#' @importFrom magrittr %>%
+#'
+#' @examples
+#' path1 <- system.file("extdata", "identical_demo.rds", package = "QI_reshape")
+#' path2 <- system.file("extdata", "intensity_demo.rds", package = "QI_reshape")
+#'QI_mergeQQ(identical_path=path1,
+#'intensity_path=path2,
+#'score_value=0,#MS1 levels score
+#'polarity="pos")
+#'
+#' @keywords data merging
+#'
+#' @author Chuanping Zhao
+#' @seealso \code{\link[dplyr]{left_join}}, \code{\link[readr]{read_csv}}
+QI_mergeQQ<- function(identical_path="inputfile/pos_identification.csv",
+                      intensity_path="inputfile/pos_measurement.csv",
+                           score_value=0,#MS1 levels score
+                           polarity="pos"
+){
+
+  third_row <- pull(data.frame(t(read_data(intensity_path)[3, ])))#找到第三行
+  value_counts <- table(third_row)#计算第三行出现元素的个数
+  sample_name <- names(value_counts[value_counts == 2])#找到出现两次的元素
+
+  #for循环修改 给每个样本名字前加对应的标记
+  sample_raw_name <- c()
+  for (i in 1:length(sample_name)) {
+    sample_raw_name[i] <- paste0("Raw_",sample_name[i])
+  }
+  sample_raw_name
+  sample_nor_name <- c()
+  for (j in 1:length(sample_name)) {
+    sample_nor_name[j] <- paste0("Norm_",sample_name[j])
+
+  }
+  sample_nor_name
+  #MS定量数据整理
+  #==========
+  #找到第二行
+  first_row <- pull(data.frame(t(read_data(intensity_path)[1, ])))#找到第一行
+  non_empty_indices <- which(first_row != "")#找到第一行不为""的索引 即Normalised abundance和Raw abundance的位置
+  #raw数据在 non_empty_indices[1]:(non_empty_indices[2]-1)
+  #norm数据在 non_empty_indices[2]:(non_empty_indices[2]+(length(non_empty_indices[1]:(non_empty_indices[2]-1))-1))
+  dat_intensity <- read_data(intensity_path)
+
+  dat_intensity <- dat_intensity[3:nrow(dat_intensity),]
+  colnames(dat_intensity) <- dat_intensity[1,]
+  dat_intensity <- dat_intensity[2:nrow(dat_intensity),]
+
+  dat_normalized <- dat_intensity[,non_empty_indices[1]:(non_empty_indices[2]-1)]
+  colnames(dat_normalized) <- sample_nor_name
+
+  dat_raw <- dat_intensity[,non_empty_indices[2]:(non_empty_indices[2]+(length(non_empty_indices[1]:(non_empty_indices[2]-1))-1))]
+  colnames(dat_raw) <- sample_raw_name
+
+  #找到定量表中非数据列的列数
+  cols_nonnumeric <- non_empty_indices[1]:(non_empty_indices[2]+(length(non_empty_indices[1]:(non_empty_indices[2]-1))-1))
+  dat_nonnumeric <- dat_intensity[,-cols_nonnumeric]
+  dat_all <- dat_nonnumeric %>% cbind(dat_raw,dat_normalized)
+  #删除定量表中全部为NA的列
+  dat_all <- dat_all %>%
+    select(where(~ any(!is.na(.) & . != "")))
+
+identicalData <- read_data(identical_path)
+colnames(identicalData) <- as.character(unlist(identicalData[1, ]))
+
+x <- identicalData[-1,]
+x$Score <- as.numeric(x$Score)
+x$`Fragmentation Score` <- as.numeric(x$`Fragmentation Score`)
+dat_result <- x%>% arrange(-Score) %>% #score列降序排列
+      filter(Score>=score_value) %>% #筛选Score得分的代谢物
+      distinct(Compound,.keep_all = TRUE) %>% #对Compound去重复
+      distinct(Description,.keep_all = TRUE)
+name_ms1 <- names(dat_all)
+name_ms2 <- names(dat_result)
+common_names <- setdiff(intersect(name_ms1, name_ms2),"Compound")
+
+mergedData <- left_join(dat_result,dat_all %>% select(-all_of(common_names)),by = "Compound") %>%
+  arrange(-`Fragmentation Score`) %>%
+  mutate("Polarity"=polarity) %>%
+  select(Compound,Polarity,everything())
+cat("zcp:The analysis has been completed...\n")
+return(mergedData)
+}
+

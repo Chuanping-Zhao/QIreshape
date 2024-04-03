@@ -1,0 +1,50 @@
+#' Read Data from Various File Types
+#'
+#' This function reads data from files with different extensions (e.g., CSV, XLSX, TXT) and returns
+#' the data as a data frame or data table. It automatically installs required packages if they are
+#' not already installed. For CSV files, it uses the base R `read.csv` function.
+#'
+#' @param file_path The file path to the data file to be read.
+#'
+#' @return Returns a data frame containing the data from the file.
+#' @export
+#'
+#' @examples
+#' file_path_csv <- system.file("extdata", "demo_read.csv", package = "QIreshape")
+#' data <- read_data(file_path_csv)
+#' file_path_txt <- system.file("extdata", "demo_read.txt", package = "QIreshape")
+#' data <- read_data(file_path_txt)
+#' file_path_xlsx <- system.file("extdata", "demo_read.xlsx", package = "QIreshape")
+#' data <- read_data(file_path_xlsx)
+#'
+#' @note If a required package is not installed, the function will attempt to install it automatically.
+#'
+#' @author Chuanping Zhao
+#'
+#' @seealso \code{\link[base]{read.csv}}, \code{\link[readxl]{read_excel}}, \code{\link[data.table]{fread}}
+#'
+#' @keywords file io
+#'
+#' @rdname read_data
+#'
+check_and_install_packages <- function(packages) {
+  for (package in packages) {
+    if (!require(package, character.only = TRUE)) {
+      cat(paste("zcp: ","Installing package:", package, "\n"))
+      install.packages(package)
+    }
+  }
+}
+
+read_data <- function(file_path) {
+  check_and_install_packages(c("readxl", "data.table"))  # 'readr' is not needed anymore
+
+  file_extension <- tools::file_ext(file_path)
+
+  switch(tolower(file_extension),
+         "csv" = read.csv(file_path, stringsAsFactors = FALSE,header=FALSE),  # Using base R's read.csv
+         "xlsx" = readxl::read_excel(file_path,col_names=FALSE),
+         "txt" = data.table::fread(file_path, na.strings = "",header=FALSE),
+         stop("zcp: Unsupported file type.")
+  )
+}
