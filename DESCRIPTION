@@ -2,7 +2,7 @@ Package: QIreshape
 Type: Package
 Title: Tools for Merging Qualitative and Quantitative Metabolomics Data from Progenesis QI
 Version: 0.1.0
-Author: Your Name <zcphbumaster@163.com>
+Author: Chuanping Zhao <zcphbumaster@163.com>
 Maintainer: Chuanping Zhao <zcphbumaster@163.com>
 Description: This package provides functions to merge and process qualitative and quantitative metabolomics data exported from Progenesis QI software, facilitating data analysis.
 License: GPL-3
